@@ -28,14 +28,41 @@ modifyStreetNumber3 = \f -> \a ->
   -- runIdentity (modifyStreetNumber2 ((\i2i -> \n -> Identity (i2i n)) f) a)
   runIdentity (modifyStreetNumber2 (Identity . f) a)
 
+modifyStreetNumber4 :: (Int -> Int) -> Address -> Address
+modifyStreetNumber4 = modify modifyStreetNumber2
+
 data Person =
   Person
     String -- name
     Address
   deriving (Eq, Show)
 
+modifyPersonAddress :: Functor f => (Address -> f Address) -> Person -> f Person
+-- modifyPersonAddress :: (Address -> Identity Address) -> Person -> Identity Person
+modifyPersonAddress = \f -> \(Person n a) -> fmap (\a' -> Person n a') (f a)
+
+modifyPersonAddress3 :: (Address -> Address) -> Person -> Person
+modifyPersonAddress3 =
+  \a2a p -> runIdentity (modifyPersonAddress (Identity . a2a) p)
+
+modifyPersonAddress4 :: (Address -> Address) -> Person -> Person
+modifyPersonAddress4 = modify modifyPersonAddress
+
+-- over
+modify :: ((a -> Identity b) -> s -> Identity t) -> (a -> b) -> s -> t
+modify k = \f a -> runIdentity (k (Identity . f) a)
+
+-- modifyStreetNumber2 :: Functor f => (Int -> f Int) -> Address -> f Address
 -- modifyPersonAddress :: Functor f => (Address -> f Address) -> Person -> f Person
-modifyPersonAddress :: (Address -> Identity Address) -> Person -> Identity Person
-modifyPersonAddress = _
+modifyPersonStreetNumber :: Functor f => (Int -> f Int) -> Person -> f Person
+-- this will make Ed happy :)
+modifyPersonStreetNumber = blah modifyPersonAddress modifyStreetNumber2
 
-
+blah ::
+  Functor f =>
+  ((Address -> f Address) -> Person -> f Person)
+  -> ((Int -> f Int) -> Address -> f Address)
+  -> (Int -> f Int)
+  -> Person
+  -> f Person
+blah = _
