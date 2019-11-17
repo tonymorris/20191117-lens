@@ -57,16 +57,19 @@ modify k = \f a -> runIdentity (k (Identity . f) a)
 
 -- modifyStreetNumber2 :: Functor f => (Int -> f Int) -> Address -> f Address
 -- modifyPersonAddress :: Functor f => (Address -> f Address) -> Person -> f Person
--- modifyPersonStreetNumber :: Functor f => (Int -> f Int) -> Person -> f Person
-modifyPersonStreetNumber :: Lens' Person Int
+-- personStreetNumber :: Functor f => (Int -> f Int) -> Person -> f Person
+personStreetNumber :: Lens' Person Int
 -- this will make Ed happy :)
 -- address ::      Lens' Person Address
 -- streetNumber :: Lens' Address Int
 -- _ ::            Lens' Person Int
-modifyPersonStreetNumber = address.streetNumber
+personStreetNumber = address.streetNumber
 
 setPersonStreetNumber :: Int -> Person -> Person
-setPersonStreetNumber = modify modifyPersonStreetNumber . const
+setPersonStreetNumber = set personStreetNumber
+
+set :: ((a -> Identity b) -> s -> Identity t) -> b -> s -> t
+set k = modify k . const
 
 getPersonAddress :: Person -> Address
 -- use address :: Functor f => (Address -> f Address) -> Person -> f Person
@@ -94,8 +97,26 @@ instance Functor (Const a) where
 type Lens s t a b =
   forall f. Functor f => (a -> f b) -> s -> f t
 
+-- this should always return True
+getsetLaw :: Eq s => Lens' s a -> s -> Bool
+getsetLaw l s = set l (get l s) s == s
+
+-- this should always return True
+setgetLaw :: Eq a => Lens' s a -> s -> a -> Bool
+setgetLaw l s a =
+  get l (set l a s) == a
+
+-- this should always return True
+setsetLaw l s x1 x2 =
+  set l x2 (set l x1 s) == set l x2 s
+
 type Lens' s a =
   Lens s s a a
+
+foo :: Functor f => (a -> f b) -> s -> f t
+foo = error "Ed rant"
+
+data OldLens s t a b = OldLens (s -> (a, b -> t))
 
 {-
 blah ::
