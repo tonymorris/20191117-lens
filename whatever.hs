@@ -24,5 +24,18 @@ modifyStreetNumber2 :: Functor f => (Int -> f Int) -> Address -> f Address
 modifyStreetNumber2 = \f -> \(Address sn sm) -> fmap (\sn' -> Address sn' sm) (f sn)
 
 modifyStreetNumber3 :: (Int -> Int) -> Address -> Address
-modifyStreetNumber3 = _
+modifyStreetNumber3 = \f -> \a ->
+  -- runIdentity (modifyStreetNumber2 ((\i2i -> \n -> Identity (i2i n)) f) a)
+  runIdentity (modifyStreetNumber2 (Identity . f) a)
+
+data Person =
+  Person
+    String -- name
+    Address
+  deriving (Eq, Show)
+
+-- modifyPersonAddress :: Functor f => (Address -> f Address) -> Person -> f Person
+modifyPersonAddress :: (Address -> Identity Address) -> Person -> Identity Person
+modifyPersonAddress = _
+
 
