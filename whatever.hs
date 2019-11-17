@@ -1,5 +1,10 @@
 {-# LANGUAGE RankNTypes #-}
 
+-- Map
+import Data.Map(Map)
+-- e.g. Map.insert
+import qualified Data.Map as Map(insert, lookup, delete)
+
 data Address =
   Address
     Int -- street number
@@ -117,6 +122,17 @@ foo :: Functor f => (a -> f b) -> s -> f t
 foo = error "Ed rant"
 
 data OldLens s t a b = OldLens (s -> (a, b -> t))
+
+
+-- A Person has exactly 1 Address (**and** some other stuff)
+-- An Address has exactly 1 Int street number (**and** some other stuff)
+
+-- Map.insert :: Ord k => k -> a -> Map k a -> Map k a 
+-- Map.delete :: Ord k => k -> Map k a -> Map k a 
+-- Map.lookup :: Ord k => k -> Map k a -> Maybe a 
+
+at :: Ord k => k -> Lens' (Map k v) (Maybe v)
+at = \k -> undefined
 
 {-
 blah ::
