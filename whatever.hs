@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 data Address =
   Address
     Int -- street number
@@ -19,7 +21,7 @@ runIdentity (Identity a) = a
 instance Functor Identity where
   fmap = \f -> \(Identity a) -> Identity (f a)
 
-streetNumber :: Functor f => (Int -> f Int) -> Address -> f Address
+streetNumber :: Lens' Address Int
 -- modifyStreetNumber2 = \f -> \(Address sn sm) -> (\i -> fmap (\sn' -> Address sn' sm) i) (f sn)
 streetNumber = \f -> \(Address sn sm) -> fmap (\sn' -> Address sn' sm) (f sn)
 
@@ -37,7 +39,8 @@ data Person =
     Address
   deriving (Eq, Show)
 
-address :: Functor f => (Address -> f Address) -> Person -> f Person
+-- address :: Functor f => (Address -> f Address) -> Person -> f Person
+address :: Lens' Person Address
 -- modifyPersonAddress :: (Address -> Identity Address) -> Person -> Identity Person
 address = \f -> \(Person n a) -> fmap (\a' -> Person n a') (f a)
 
@@ -54,8 +57,12 @@ modify k = \f a -> runIdentity (k (Identity . f) a)
 
 -- modifyStreetNumber2 :: Functor f => (Int -> f Int) -> Address -> f Address
 -- modifyPersonAddress :: Functor f => (Address -> f Address) -> Person -> f Person
-modifyPersonStreetNumber :: Functor f => (Int -> f Int) -> Person -> f Person
+-- modifyPersonStreetNumber :: Functor f => (Int -> f Int) -> Person -> f Person
+modifyPersonStreetNumber :: Lens' Person Int
 -- this will make Ed happy :)
+-- address ::      Lens' Person Address
+-- streetNumber :: Lens' Address Int
+-- _ ::            Lens' Person Int
 modifyPersonStreetNumber = address.streetNumber
 
 setPersonStreetNumber :: Int -> Person -> Person
@@ -84,6 +91,11 @@ runConst (Const x) = x
 instance Functor (Const a) where
   fmap = \_ -> \(Const x) -> Const x
 
+type Lens s t a b =
+  forall f. Functor f => (a -> f b) -> s -> f t
+
+type Lens' s a =
+  Lens s s a a
 
 {-
 blah ::
