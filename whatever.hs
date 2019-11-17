@@ -1,4 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- Map
 import Data.Map(Map)
@@ -25,6 +26,16 @@ runIdentity (Identity a) = a
 
 instance Functor Identity where
   fmap = \f -> \(Identity a) -> Identity (f a)
+
+instance Applicative Identity where
+  pure = \a -> Identity a
+  Identity f <*> Identity a =
+    Identity (f a)
+
+instance Monoid a => Applicative (Const a) where
+  pure = \_ -> Const mempty
+  Const f <*> Const a =
+    Const (f `mappend` a)
 
 streetNumber :: Lens' Address Int
 -- modifyStreetNumber2 = \f -> \(Address sn sm) -> (\i -> fmap (\sn' -> Address sn' sm) i) (f sn)
@@ -131,8 +142,84 @@ data OldLens s t a b = OldLens (s -> (a, b -> t))
 -- Map.delete :: Ord k => k -> Map k a -> Map k a 
 -- Map.lookup :: Ord k => k -> Map k a -> Maybe a 
 
+-- contains :: Ord a => a -> Lens' (Set a) Bool
+-- set . contains :: Ord a => a -> Bool -> Set a -> Set a
+
 at :: Ord k => k -> Lens' (Map k v) (Maybe v)
-at = \k -> undefined
+at = \k -> \p -> \m ->
+      fmap
+        {-
+        (
+          \case
+            Nothing -> _
+            Just v -> _
+        )
+        -}
+        (maybe (Map.delete k m) (\v -> Map.insert k v m))
+        (p (Map.lookup k m))
+
+data Company =
+  Company
+    Person -- ceo
+    Person -- cto
+    Person -- cfo
+    [Person] -- employees
+    String -- name
+  deriving (Eq, Show)
+
+companyCeo ::
+  Functor f => (Person -> f Person) -> Company -> f Company
+companyCeo =
+  undefined
+
+companyEmployees ::
+  Functor f => ([Person] -> f [Person]) -> Company -> f Company
+companyEmployees =
+  undefined
+
+-- traverse :: Applicative f => (a -> f b) -> [a] -> f [b]
+-- traverse :: Applicative f => (Person -> f Person) -> [Person] -> f [Person]
+
+type Traversal s t a b =
+  forall f. Applicative f =>
+  (a -> f b) -> s -> f t
+
+type Traversal' s a =
+  Traversal s s a a
+
+companyPersons ::
+  -- Applicative f => (Person -> f Person) -> Company -> f Company
+  Traversal' Company Person
+companyPersons =
+  \f -> \(Company ceo cto cfo es n) ->
+    Company <$>
+      f ceo <*>
+      f cto <*>
+      pure cfo <*>
+      traverse f es <*>
+      pure n
+
+moveAllPersonsNextDoor ::
+  Company -> Company
+moveAllPersonsNextDoor =
+  modify (companyPersons.address.streetNumber) (+1)
+
+testCompany ::
+  Company
+testCompany =
+  Company
+    (Person "Bob" (Address 23 "street st"))
+    (Person "Mary" (Address 12 "unstreet st"))
+    (Person "Fred" (Address 4 "stop st"))
+    [
+      Person "Bill" (Address 99 "start st")
+    , Person "Alice" (Address 998 "dzfhg st")
+    ]
+    "ACME Industries"
+
+-- fmap :: Functor f => (a -> b) -> f a -> f b
+-- (<$>) :: Functor f => (a -> b) -> f a -> f b
+
 
 {-
 blah ::
