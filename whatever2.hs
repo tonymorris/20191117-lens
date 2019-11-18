@@ -53,6 +53,42 @@ bar :: Traversal' Json Json
 bar = key "k1" . key "k2"
 -- _Object.at "key".traverse._Object.at "key2".traverse
 
+
+{- optics
+
+// all the things
+Optic p f s t a b = p a (f b) -> p s (f t)
+
+// b -> t, s -> Either t a
+Prism     s t a b = (Choice p, Applicative f) => p a (f b) -> p s (f t)
+
+// s -> a, s -> b -> t
+Lens      s t a b = (p ~ (->)    , Functor f) => p a (f b) -> p s (f t)
+
+// s -> a, b -> t
+Iso       s t a b = (Profunctor p, Functor f) => p a (f b) -> p s (f t)
+
+
+Traversal s t a b = (p ~ (->), Applicative f) => p a (f b) -> p s (f t)
+
+class Contravariant f where
+  contramap :: (b -> a) -> f a -> f b
+
+newtype Predicate a = Predicate (a -> Bool)
+
+instance Contravariant Predicate where
+  fmap b2a (Predicate a2bool) = Predicate $ \b -> a2bool $ b2a b
+
+// s -> a
+type Getter s a = (Functor f, Contravariant f) =>
+  (a -> f a) -> s -> f s
+
+// s -> [a]
+type Fold s a = (Applicative f, Contravariant f) => 
+  (a -> f a) -> s -> f s
+  
+-}
+
 {- Ed ghci session
 
 λ> :t (+=)
@@ -128,5 +164,13 @@ transform :: Plated a => (a -> a) -> a -> a
 λ> :t rewriteOf
 rewriteOf :: ASetter a b a b -> (b -> Maybe a) -> a -> b
 
+data Store a b = Store (a -> b, a)
+
+instance Functor (Store a) where
+  -- have fun :)
+
+instance Comonad (Store a) where
+  -- have fun :)
+  
 -}
 
