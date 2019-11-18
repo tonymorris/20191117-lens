@@ -180,6 +180,25 @@ companyEmployees =
 -- traverse :: Applicative f => (a -> f b) -> [a] -> f [b]
 -- traverse :: Applicative f => (Person -> f Person) -> [Person] -> f [Person]
 
+type Iso s t a b = forall p f. (Profunctor p, Functor f) => 
+  p a (f b) -> p s (f t)
+
+type Iso' s a =
+  Iso s s a a
+
+data Star f a b = Star (a -> f b)
+
+instance Functor f => Profunctor (Star f) where
+  dimap b2a c2d (Star a2fc) = Star $ \b -> fmap c2d $ a2fc (b2a b)
+
+-- lens :: (s -> a) -> (s -> b -> t) -> Lens s t a b
+
+
+iso :: (s -> a) -> (b -> t) -> Iso s t a b
+iso s2a b2t pafb = dimap s2a (fmap b2t) pafb
+
+-- unget :: Iso s t a b -> b -> t
+
 type Traversal s t a b =
   forall f. Applicative f =>
   (a -> f b) -> s -> f t
@@ -219,6 +238,132 @@ testCompany =
 
 -- fmap :: Functor f => (a -> b) -> f a -> f b
 -- (<$>) :: Functor f => (a -> b) -> f a -> f b
+
+class Profunctor f where
+  dimap ::
+    (b -> a) -> (c -> d) -> f a c -> f b d
+
+data Tagged a b = Tagged b
+-- data PrettyParse a b = Crazy (a -> Doc) (Parser b)
+
+class Profunctor p => Choice p where
+  left :: p a b -> p (Either a c) (Either b c)
+
+instance Choice (->) where
+  left a2b (Left a) = Left (a2b a)
+  left a2b (Right c) = Right c 
+
+-- review :: Prism s t a b -> b -> t
+
+class Profunctor p => Strong p where
+  first :: p a b -> p (a, c) (b, c)
+
+type Prism s t a b = forall p f. (Choice p, Applicative f) => 
+  p a (f b) -> p s (f t)
+type Prism' s a = Prism s s a a
+
+prism :: (b -> t) -> (s -> Either a t) -> Prism s t a b
+prism b2t seat pafb = dimap seat (\case
+    Left fb -> fmap b2t fb
+    Right t -> pure t 
+  ) $ left pafb
+
+_Left :: Prism (Either a c) (Either b c) a b
+_Left = prism Left $ \case
+  Left a -> Left a
+  Right c -> Right (Right c)
+
+_Right :: Prism (Either c a) (Either c b) a b
+_Right = prism Right $ \case
+  Left c -> Right (Left c)
+  Right a -> Left a 
+
+-- (#) :: Prism s t a b -> b -> t
+
+-- _Left._Right # 12
+-- Left (Right 12)
+
+doNothing :: Traversal s s a b
+doNothing a2fb s = pure s 
+
+idLens :: Iso s t s t
+idLens = id
+
+
+-- S_i = [i]   A_i = i
+-- traverse :: Traversal [a] [b] a b
+both :: Traversal (a,a) (b,b) a b
+both a2b (a1,a2) = (,) <$> a2b a1 <*> a2b a2
+
+-- data Match 
+
+-- project :: Prism s t a b -> s -> Either t a
+
+-- embed :: Prism s t a b -> b -> t
+
+instance Functor f => Strong (Star f) where
+  first (Star a2fb) = Star $ \(a,c) -> fmap (\b -> (b,c)) $ a2fb a
+
+-- type Lens s t a b = forall p. Strong p => p a b -> p s t
+
+
+instance Profunctor (->) where
+  dimap b2a c2d a2c = c2d . a2c . b2a
+
+leftMap :: Profunctor f => (b -> a) -> f a x -> f b x
+leftMap f = dimap f id
+
+data FancyCompany =
+  FancyCompany
+    Company
+  deriving (Eq, Show)
+
+fancyCompany :: Iso' FancyCompany Company 
+fancyCompany =
+  iso
+    (\(FancyCompany x) -> x)
+    FancyCompany
+
+identity :: Iso (Identity a) (Identity b) a b
+identity =
+  iso
+   runIdentity
+   Identity
+
+{-
+
+Ed afternoon rant
+-----------------
+
+// b -> t, s -> Either t a
+Prism     s t a b = (Choice p, Applicative f) => p a (f b) -> p s (f t)
+
+// s -> a, s -> b -> t
+Lens      s t a b = (p ~ (->)    , Functor f) => p a (f b) -> p s (f t)
+
+// s -> a, b -> t
+Iso       s t a b = (Profunctor p, Functor f) => p a (f b) -> p s (f t)
+
+
+Traversal s t a b = (p ~ (->), Applicative f) => p a (f b) -> p s (f t)
+
+class Contravariant f where
+  contramap :: (b -> a) -> f a -> f b
+
+newtype Predicate a = Predicate (a -> Bool)
+
+instance Contravariant Predicate where
+  fmap b2a (Predicate a2bool) = Predicate $ \b -> a2bool $ b2a b
+
+// s -> a
+type Getter s a = (Functor f, Contravariant f) =>
+  (a -> f a) -> s -> f s
+
+// s -> [a]
+type Fold s a = (Applicative f, Contravariant f) => 
+  (a -> f a) -> s -> f s
+
+-}
 
 
 {-
